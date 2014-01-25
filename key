@@ -1,0 +1,151 @@
+#!/bin/bash
+# Copyright megabaks
+# Distributed under the terms of the GNU General Public License v3 or later
+############################################################################
+################ check_openrc ##############################################
+[[ -f "/etc/init.d/functions.sh" ]] && . /etc/init.d/functions.sh
+############################################################################
+################ colors ####################################################
+green="\033[01;32m"
+red="\033[01;31m"
+restore="\033[00m"
+############################################################################
+################ find_category #############################################
+find_category(){
+	[[ -f "/etc/make.conf" ]] && source "/etc/make.conf" 2>/dev/null
+	[[ -f "${PORT_ETC}/make.conf" ]] && source "${PORT_ETC}/make.conf" 2>/dev/null
+	[[ -z "${PORTDIR}" ]] && PORTDIR="/usr/portage"
+	if [[ -n "$(eix -V 2>/dev/null)" ]];then
+		PORTDIR_OVERLAY="$(eix --print PORTDIR_OVERLAY)"
+	else
+		export "$(grep "^PORTDIR_OVERLAY=" <<< "$(emerge --info 2>/dev/null)" | tr -d \")"
+	fi
+	for target in ${PORTDIR} ${PORTDIR_OVERLAY};do
+		categories+="$(ls -d1 ${target}/{*-*,virtual} 2>/dev/null)"$'\n'
+	done
+	categories="$(sed '/^$/d' <<< "${categories}" 2>/dev/null)"
+	while read line;do
+		if [[ -d "${line}/${atom}" ]];then
+			category+="${line##*/}"$'\n'
+		fi
+	done <<< "${categories}"
+	echo "${category}"
+}
+############################################################################
+################ env #######################################################
+PORT_ETC="/etc/portage"
+atom="${1}"
+passed_keys="${@#${1//\*/\\*}}"
+if ! grep -q '/' <<< "${atom}";then
+	category="$(find_category)"
+	if [[ "$(wc -l <<< "${category}")" != "1" ]];then
+		echo -e "${green}choose one of${restore}:"
+		for i in ${category};do
+			echo "${i}/${atom}"
+		done
+		exit 0
+	fi
+elif grep -q "*/.*" <<< "${atom}";then
+	category="*"
+elif grep -q \* <<< "${atom}";then
+	category="${atom%%/\*}"
+else
+	category="${atom%%/*}"
+fi
+atom="${category}/${atom##*/}"
+############################################################################
+################ file or dir... ############################################
+file_or_dir(){
+	for i in ${1};do
+		founded+=" $(ls -d1 ${PORT_ETC}/${i} 2>/dev/null)"
+	done
+	if [[ -z "${founded}" ]];then
+		founded="${PORT_ETC}/${1}"
+		touch "${founded}"
+	fi
+	for target in ${founded};do
+		if [[ -f "${target}" ]];then
+			file="${target}"
+			${2};${3};${4};
+		elif [[ -d "${target}" ]];then
+			for f in `find ${target} -type f \! -name '*~' \! -name '*.bak'` i_like_you_my_little_gentoo;do
+				if grep -q -m1 "${atom//\*/\\*}[[:space:]]" "${file}";then
+					file="${f}"
+					${2};${3};${4};
+				else
+					if [[ "${f}" == "i_like_you_my_little_gentoo" ]];then
+						file="${PORT_ETC}/${category}"
+						${2};${3};${4};
+					fi
+				fi
+			done
+		fi
+	done
+}
+############################################################################
+################ sort_passed_keys ##########################################
+sort_passed_keys(){
+	for opt in ${1};do
+		opt="${opt//\*/\\*}"
+		keys="$(tr "[:space:]" $'\n' <<< ${keys} | grep -v -e "^${opt#-}$" -e "^\-${opt#-}$" | tr $'\n' " ")"
+		keys+=" $(tr "[:space:]" $'\n' <<< ${1} | grep -e "^${opt#-}$" -e "^\-${opt#-}$" | tail -n1)"
+		unset opt
+	done
+	echo ${keys}
+	unset keys
+}
+############################################################################
+################ nothing ###################################################
+nothing(){
+	echo -e "${green}no changes${restore}"
+	eend 0 2>/dev/null
+	exit 0
+}
+############################################################################
+################ sort_keys #################################################
+sort_keys(){
+	entry="$(grep "${atom//\*/\\*}[[:space:]]" "${file}" | tail -n1)"
+	grep -q \# <<< "${entry}" && comment="$(cut -d\# -f2- <<< "${entry}")"
+
+	if [[ -n "${entry}" ]];then
+		for option in \
+			"$(grep "^${atom//\*/\\*}[[:space:]]" ${file} | sed -e "s|${atom//\*/\\*} ||" -e "s|#.*${comment}||" | tr "[:space:]" $'\n' | uniq | tr $'\n' " ")";do
+			atom_opts+="${option}"
+		done
+	fi
+	keys="$(sort_passed_keys "${atom_opts} ${passed_keys}")"
+	keys="$(sed -e "s|^- | |g" -e "s| -- ||g" -e "s| - | |g" <<< ${keys})"
+	if [[ -n "${comment}" ]];then
+		[[ "x${entry}" == "x${atom} ${keys} #${comment}" ]] && nothing
+		if [[ -z "${entry}" ]];then
+			echo -e "new:${green} ${atom} ${keys} #${comment}${restore}"
+			echo "${atom} ${keys} #${comment}" >> "${file}"
+			eend $? 2>/dev/null
+		else
+			echo -e "old:${red} ${entry}${restore}"
+			echo -e "new:${green} ${atom} ${keys} #${comment}${restore}"
+			sed  "s|${entry//\*/\\*}|${atom} ${keys} #${comment}|" -i "${file}"
+			eend $? 2>/dev/null
+		fi
+	else
+		[[ "x${entry}" == "x${atom} ${keys}" ]] && nothing
+		if [[ -z "${entry}" ]];then
+			echo -e "new:${green} ${atom} ${keys}${restore}"
+			echo "${atom} ${keys}" >> "${file}"
+			eend $? 2>/dev/null
+		else
+			echo -e "old:${red} ${entry}${restore}"
+			echo -e "new:${green} ${atom} ${keys}${restore}"
+			sed  "s|${entry//\*/\\*}|${atom} ${keys}|" -i "${file}"
+			eend $? 2>/dev/null
+		fi
+	fi
+	unset atom atom_opts option options keys comment
+} 2>/dev/null
+############################################################################
+################ package.key ###############################################
+atom_key(){
+	file_or_dir "package.keywords package.accept_keywords" "set -f" "sort_keys" "set +f" || return 1
+}
+############################################################################
+atom_key;
