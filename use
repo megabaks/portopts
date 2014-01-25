@@ -7,8 +7,8 @@
 ############################################################################
 ################ find_category #############################################
 find_category(){
-	source "/etc/make.conf" 2>/dev/null
-	source "${PORT_ETC}/make.conf" 2>/dev/null
+	[[ -f "/etc/make.conf" ]] && source "/etc/make.conf" 2>/dev/null
+	[[ -f "${PORT_ETC}/make.conf" ]] && source "${PORT_ETC}/make.conf" 2>/dev/null
 	[[ -z "${PORTDIR}" ]] && PORTDIR="/usr/portage"
 	if [[ -n "$(eix -V 2>/dev/null)" ]];then
 		PORTDIR_OVERLAY="$(eix --print PORTDIR_OVERLAY)"
