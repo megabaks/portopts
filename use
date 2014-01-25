@@ -34,36 +34,38 @@ find_category(){
 	for target in ${PORTDIR} ${PORTDIR_OVERLAY};do
 		categories+="$(ls -d1 ${target}/{*-*,virtual} 2>/dev/null)"$'\n'
 	done
-	categories="$(sed '/^$/d' <<< "${categories}" 2>/dev/null)"
+	categories="$(sed '/^$/d' <<< "${categories}" 2>/dev/null | sort -u)"
 	while read line;do
 		if [[ -d "${line}/${atom}" ]];then
 			category+="${line##*/}"$'\n'
 		fi
 	done <<< "${categories}"
-	echo "${category}" | sort -u
+	echo "${category}"
 }
 ############################################################################
 ################ env #######################################################
 PORT_ETC="/etc/portage"
 atom="${1}"
 passed_uses="${@#${1//\*/\\*}}"
-if ! grep -q '/' <<< "${atom}";then
-	category="$(find_category)"
-	if [[ "$(wc -l <<< "${category}")" != "1" ]];then
-		echo -e "${green}choose one of${restore}:"
-		for i in ${category};do
-			echo "${i}/${atom}"
-		done
-		exit 0
+if [[ -n "${2}" ]];then
+	if ! grep -q '/' <<< "${atom}";then
+		category="$(find_category)"
+		if [[ "$(wc -l <<< "${category}")" != "1" ]];then
+			echo -e "${green}choose one of${restore}:"
+			for i in ${category};do
+				echo "${i}/${atom}"
+			done
+			exit 0
+		fi
+	elif grep -q "*/.*" <<< "${atom}";then
+		category="*"
+	elif grep -q \* <<< "${atom}";then
+		category="${atom%%/\*}"
+	else
+		category="${atom%%/*}"
 	fi
-elif grep -q "*/.*" <<< "${atom}";then
-	category="*"
-elif grep -q \* <<< "${atom}";then
-	category="${atom%%/\*}"
-else
-	category="${atom%%/*}"
+	atom="${category}/${atom##*/}"
 fi
-atom="${category}/${atom##*/}"
 ############################################################################
 ################ file or dir... ############################################
 file_or_dir(){
