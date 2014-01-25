@@ -10,6 +10,18 @@ green="\033[01;32m"
 red="\033[01;31m"
 restore="\033[00m"
 ############################################################################
+################ usage #####################################################
+usage(){
+	echo "Usage:"
+	echo "key atom keyword(s)"
+	echo "atom ---> \${CATEGORY}/\${PN} or \${PN}"
+	echo "i.e.:"
+	echo -e "${green}key media-sound/deadbeef -~x86${restore}"
+	echo "or"
+	echo -e "${green}key deadbeef -~x86${restore}"
+	echo -e "${red}** must be strong quoted!${restore} ---> i.e. '**'"
+}
+############################################################################
 ################ find_category #############################################
 find_category(){
 	[[ -f "/etc/make.conf" ]] && source "/etc/make.conf" 2>/dev/null
@@ -148,4 +160,6 @@ atom_key(){
 	file_or_dir "package.keywords package.accept_keywords" "set -f" "sort_keys" "set +f" || return 1
 }
 ############################################################################
+################ run #######################################################
+[[ -z "${2}" ]] && usage && exit 1
 atom_key;

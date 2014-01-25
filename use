@@ -10,6 +10,17 @@ green="\033[01;32m"
 red="\033[01;31m"
 restore="\033[00m"
 ############################################################################
+################ usage #####################################################
+usage(){
+	echo "Usage:"
+	echo "key atom use(s)"
+	echo "atom ---> \${CATEGORY}/\${PN} or \${PN}"
+	echo "i.e.:"
+	echo -e "${green}key media-sound/deadbeef supereq${restore}"
+	echo "or"
+	echo -e "${green}key deadbeef supereq${restore}"
+}
+############################################################################
 ################ find_category #############################################
 find_category(){
 	[[ -f "/etc/make.conf" ]] && source "/etc/make.conf" 2>/dev/null
@@ -146,4 +157,6 @@ atom_use(){
 	file_or_dir "package.use" "set -f" "sort_uses" "set +f" || return 1
 }
 ############################################################################
+################ run #######################################################
+[[ -z "${2}" ]] && usage && exit 1
 atom_use;
