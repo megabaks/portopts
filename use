@@ -45,6 +45,8 @@ if ! grep -q '/' <<< "${atom}";then
 		done
 		exit 0
 	fi
+elif grep -q "*/.*" <<< "${atom}";then
+	category="*"
 elif grep -q \* <<< "${atom}";then
 	[[ "${atom##*/}" == "*" ]] && category="${atom%%/\*}"
 else
