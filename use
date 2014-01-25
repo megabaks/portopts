@@ -45,8 +45,12 @@ if ! grep -q '/' <<< "${atom}";then
 		done
 		exit 0
 	fi
+elif grep -q \* <<< "${atom}";then
+	[[ "${atom##*/}" == "*" ]] && category="${atom%%/\*}"
+else
+	category="${atom%%/*}"
 fi
-atom="${category}/${atom}"
+atom="${category}/${atom##*/}"
 ############################################################################
 ################ file or dir... ############################################
 file_or_dir(){
