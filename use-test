@@ -39,9 +39,11 @@ if ! grep -q '/' <<< "${atom}";then
 			echo "${i}/${atom}"
 		done
 		exit 0
+	else
+		category="${category}"
 	fi
+	atom="${category}/${atom}"
 fi
-atom="${category}/${atom}"
 ############################################################################
 ################ colors ####################################################
 green="\033[01;32m"
@@ -97,8 +99,8 @@ nothing(){
 ################ sort_uses #################################################
 sort_uses(){
 	entry="$(grep "${atom//\*/\\*}[[:space:]]" "${file}" | tail -n1)"
-	grep -q \# <<< "${entry}" && comment="$(cut -d\# -f2- <<< "${entry}")"
-
+	comment="$(cut -d\# -f2- <<< "${entry}")"
+	echo "${comment}"
 	if [[ -n "${entry}" ]];then
 		for option in \
 			"$(grep "^${atom//\*/\\*}[[:space:]]" ${file} | sed -e "s|${atom//\*/\\*} ||" -e "s|#.*${comment}||" | tr "[:space:]" $'\n' | uniq | tr $'\n' " ")";do
@@ -108,7 +110,9 @@ sort_uses(){
 	uses="$(sort_passed_uses "${atom_opts} ${passed_uses}")"
 	uses="$(sed -e "s|^- | |g" -e "s| -- ||g" -e "s| - | |g" <<< ${uses})"
 	if [[ -n "${comment}" ]];then
-		[[ "x${entry}" == "x${atom} ${uses} #${comment}" ]] && nothing
+		if [[ "x${entry}" == "x${atom} ${uses} #${comment}" ]];then
+			nothing
+		fi
 		if [[ -z "${entry}" ]];then
 			echo -e "new:${green} ${atom} ${uses} #${comment}${restore}"
 			echo "${atom} ${uses} #${comment}" >> "${file}"
@@ -120,7 +124,9 @@ sort_uses(){
 			eend $? 2>/dev/null
 		fi
 	else
-		[[ "x${entry}" == "x${atom} ${uses}" ]] && nothing
+		if [[ "x${entry}" == "x${atom} ${uses}" ]];then
+			nothing
+		fi
 		if [[ -z "${entry}" ]];then
 			echo -e "new:${green} ${atom} ${uses}${restore}"
 			echo "${atom} ${uses}" >> "${file}"
