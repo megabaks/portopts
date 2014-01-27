@@ -12,13 +12,18 @@ restore="\033[00m"
 ############################################################################
 ################ usage #####################################################
 usage(){
-	echo "Usage:"
-	echo "key atom use(s)"
-	echo "atom ---> \${CATEGORY}/\${PN} or \${PN}"
+	echo "Usage"
+	echo "DEFINE:"
+	echo "use atom use(s)"
 	echo "i.e.:"
-	echo -e "${green}key media-sound/deadbeef supereq${restore}"
+	echo -e "${green}use media-sound/deadbeef supereq${restore}"
 	echo "or"
-	echo -e "${green}key deadbeef supereq${restore}"
+	echo -e "${green}use deadbeef supereq${restore}"
+	echo "REMOVE:"
+	echo "use atom use(s) !"
+	echo "i.e.:"
+	echo -e "${green}use media-sound/deadbeef m3u !${restore}"
+	echo "atom ---> \${CATEGORY}/\${PN} or \${PN}"
 }
 ############################################################################
 ################ find_category #############################################
@@ -113,6 +118,15 @@ nothing(){
 	exit 0
 }
 ############################################################################
+################ remove ####################################################
+remove(){
+	defined="$(tr ' ' $'\n' <<< "${1}")"
+	for trash in ${2};do
+		defined="$(grep -v -e "^${trash#-}$" -e "^\-${trash#-}$" <<< "${defined}")"
+	done
+	echo ${defined}
+}
+############################################################################
 ################ sort_uses #################################################
 sort_uses(){
 	entry="$(grep "${atom//\*/\\*}[[:space:]]" "${file}" | tail -n1)"
@@ -124,7 +138,11 @@ sort_uses(){
 			atom_opts+="${option}"
 		done
 	fi
-	uses="$(sort_passed_uses "${atom_opts} ${passed_uses}")"
+	if [[ -n "${remove}" ]];then
+		uses="$(remove "${atom_opts}" "${passed_uses}")"
+	else
+		uses="$(sort_passed_uses "${atom_opts} ${passed_uses}")"
+	fi
 	uses="$(sed -e "s|^- | |g" -e "s| -- ||g" -e "s| - | |g" <<< ${uses})"
 	if [[ -n "${comment}" ]];then
 		[[ "x${entry}" == "x${atom} ${uses} #${comment}" ]] && nothing
@@ -161,4 +179,11 @@ atom_use(){
 ############################################################################
 ################ run #######################################################
 [[ -z "${2}" ]] && usage && exit 1
+##### remove
+if grep -q \! <<< "${passed_uses}";then
+	count="${#}"
+	passed_uses="${passed_uses%${count}}"
+	remove="true"
+fi
+##### /remove
 atom_use;
