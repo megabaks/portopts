@@ -180,10 +180,6 @@ atom_use(){
 ################ run #######################################################
 [[ -z "${2}" ]] && usage && exit 1
 ##### remove
-if grep -q \! <<< "${passed_uses}";then
-	count="${#}"
-	passed_uses="${passed_uses%${count}}"
-	remove="true"
-fi
+grep -q \! <<< "${passed_uses}" && remove="true"
 ##### /remove
 atom_use;
