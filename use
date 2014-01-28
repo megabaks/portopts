@@ -9,6 +9,8 @@
 green="\033[01;32m"
 red="\033[01;31m"
 restore="\033[00m"
+bg_green="\033[0;42;2;30m"
+bg_red="\033[0;41;3;37m"
 ############################################################################
 ################ usage #####################################################
 usage(){
@@ -144,27 +146,45 @@ sort_uses(){
 		uses="$(sort_passed_uses "${atom_opts} ${passed_uses}")"
 	fi
 	uses="$(sed -e "s|^- | |g" -e "s| -- ||g" -e "s| - | |g" <<< ${uses})"
+	##### colors
+	old_uses="${atom_opts}"
+	new_uses="${uses}"
+	tmp_new_uses="$(tr ' ' $'\n' <<< "${new_uses}")"
+	[[ -n "${old_uses}" ]] && tmp_old_uses="$(tr ' ' $'\n' <<< "${old_uses}")"
+	for use in ${old_uses};do
+		if ! grep -q "^${use}$" <<< "${tmp_new_uses}";then
+			old_uses="${old_uses/${use}/${bg_red}${use}${restore}${red}}"
+		fi
+	done
+	if [[ -n "${tmp_old_uses}" ]];then
+		for use in ${new_uses};do
+			if ! grep -q "^${use}$" <<< "${tmp_old_uses}";then
+				new_uses="${new_uses/${use}/${bg_green}${use}${restore}${green}}"
+			fi
+		done
+	fi
+	##### /colors
 	if [[ -n "${comment}" ]];then
 		[[ "x${entry}" == "x${atom} ${uses} #${comment}" ]] && nothing
 		if [[ -z "${entry}" ]];then
-			echo -e "new:${green} ${atom} ${uses} #${comment}${restore}"
+			echo -e "new:${green} ${atom} ${new_uses} #${comment}${restore}"
 			echo "${atom} ${uses} #${comment}" >> "${file}"
 			eend $? 2>/dev/null
 		else
-			echo -e "old:${red} ${entry}${restore}"
-			echo -e "new:${green} ${atom} ${uses} #${comment}${restore}"
+			echo -e "old:${red} ${atom} ${old_uses} #${comment}${restore}"
+			echo -e "new:${green} ${atom} ${new_uses} #${comment}${restore}"
 			sed  "s|${entry//\*/\\*}|${atom} ${uses} #${comment}|" -i "${file}"
 			eend $? 2>/dev/null
 		fi
 	else
 		[[ "x${entry}" == "x${atom} ${uses}" ]] && nothing
 		if [[ -z "${entry}" ]];then
-			echo -e "new:${green} ${atom} ${uses}${restore}"
+			echo -e "new:${green} ${atom} ${new_uses}${restore}"
 			echo "${atom} ${uses}" >> "${file}"
 			eend $? 2>/dev/null
 		else
-			echo -e "old:${red} ${entry}${restore}"
-			echo -e "new:${green} ${atom} ${uses}${restore}"
+			echo -e "old:${red} ${atom} ${old_uses}${restore}"
+			echo -e "new:${green} ${atom} ${new_uses}${restore}"
 			sed  "s|${entry//\*/\\*}|${atom} ${uses}|" -i "${file}"
 			eend $? 2>/dev/null
 		fi
