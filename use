@@ -109,7 +109,7 @@ sort_passed_uses(){
 		uses+=" $(tr "[:space:]" $'\n' <<< ${1} | grep -e "^${opt#-}$" -e "^\-${opt#-}$" | tail -n1)"
 		unset opt
 	done
-	echo ${uses}
+	echo ${uses} | tr ' ' $'\n' | sort
 	unset uses
 }
 ############################################################################
