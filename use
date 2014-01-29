@@ -32,7 +32,7 @@ usage(){
 find_category(){
 	[[ -f "/etc/make.conf" ]] && source "/etc/make.conf" 2>/dev/null
 	[[ -f "${PORT_ETC}/make.conf" ]] && source "${PORT_ETC}/make.conf" 2>/dev/null
-	[[ -z "${PORTDIR}" ]] && PORTDIR="/usr/portage"
+	PORTDIR="${PORTDIR:-/usr/portage}"
 	if [[ -n "$(eix -V 2>/dev/null)" ]];then
 		PORTDIR_OVERLAY="$(eix --print PORTDIR_OVERLAY)"
 	else
